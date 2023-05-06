@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "to_lower_client.h"
+
 #define TEST "GuInGa GuInGa"
 #define CLIENT "help"
 #define SERVER "lower"
