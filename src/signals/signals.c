@@ -10,6 +10,8 @@
 
 static volatile int done, count;
 
+static sig_atomic_t sigflag = 0;
+
 static void
 handler_1(int sig)
 {
@@ -47,6 +49,12 @@ handler_4(int sig)
 {
 	printf("signal %d received %d times\n", sig, count);
 	count++;
+}
+
+static void
+handler_5(void)
+{
+	sigflag = 1;
 }
 
 static int
@@ -129,4 +137,35 @@ catch_signal_multiple_times(void)
 	while (count != 4) {
 	}
 	return;
+}
+
+void
+kill_from_other_process(void)
+{
+	struct sigaction act;
+	sigset_t cont_mask, old_mask;
+	pid_t cpid;
+
+	act.sa_handler = handler_5;
+	sigemptyset(&act.sa_mask);
+	act.sa_flags = 0;
+	if (sigaction(SIGUSR1, &act, NULL) == -1)
+		return;
+
+	sigemptyset(&cont_mask);
+	sigaddset(&cont_mask, SIGUSR1);
+
+	if (sigprocmask(SIG_BLOCK, &cont_mask, &old_mask) == -1)
+		return;
+
+	cpid = fork();
+
+	if (cpid == 0) {
+		printf("hello\n");
+		kill(getppid(), SIGUSR1);
+	} else {
+		while (sigflag == 0)
+			sigsuspend(&old_mask);
+		printf("goodbye\n");
+	}
 }
